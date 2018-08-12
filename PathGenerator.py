@@ -1,6 +1,7 @@
 import cv2
 import configparser
 import math
+import sys
 
 def click(event, x, y, flags, param):
     global waypoints, img, start_pos, mouse_down
@@ -16,7 +17,6 @@ def click(event, x, y, flags, param):
         mouse_down = False
         if len(waypoints) == 0:
             start_pos = (x,y)
-            print(start_pos)
         waypoints.append((x-start_pos[0], start_pos[1]-y))
         cv2.circle(img, (start_pos[0]+waypoints[-1][0], start_pos[1]-waypoints[-1][1]), 3, (0,255,255), -1)
         if len(waypoints) > 1:
@@ -24,8 +24,8 @@ def click(event, x, y, flags, param):
                      (start_pos[0]+waypoints[-1][0], start_pos[1]-waypoints[-1][1]), (0,255,255), 2)
         cv2.imshow("Field", img)
 
-waypoints = [(0, 0), (0, 457), (-388, 457), (-385, 573), (-385, 583)]
-start_pos = (600,760)
+waypoints = []      # [(0, 0), (0, 457), (-388, 457), (-385, 573), (-385, 583)]
+start_pos = (0,0)   # (600,760)
 mouse_down = False
 
 config = configparser.ConfigParser()
@@ -34,8 +34,10 @@ config.read("config.ini")
 img = cv2.imread(config["FIELD_IMAGE"]["FILE_LOCATION"])
 cv2.imshow("Field", img)
 cv2.setMouseCallback("Field", click)
-# cv2.waitKey()
-print(waypoints)
+cv2.waitKey()
+
+if len(waypoints) < 2:
+    sys.exit(0)
 
 total_waypoints = []
 waypoints[0] = tuple(x/float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"]) for x in waypoints[0])
@@ -66,8 +68,8 @@ smooth_waypoints[0].append(0)
 for i, w in enumerate(smooth_waypoints[1:], start=1):
     w.append(smooth_waypoints[i-1][2] + math.sqrt((w[0]-smooth_waypoints[i-1][0])**2 + (w[1]-smooth_waypoints[i-1][1])**2))
 
-smooth_waypoints[0].append(0)
-smooth_waypoints[-1].append(0)
+smooth_waypoints[0].append(0.0001)
+smooth_waypoints[-1].append(0.0001)
 for i, w in enumerate(smooth_waypoints[1:-1], start=1):
     w[0] += 0.0001
     w[1] += 0.0001
@@ -76,10 +78,15 @@ for i, w in enumerate(smooth_waypoints[1:-1], start=1):
     b = .5*(smooth_waypoints[i-1][0]**2 - 2*smooth_waypoints[i-1][0]*k1 + smooth_waypoints[i-1][1]**2 - smooth_waypoints[i+1][0]**2 + 2*smooth_waypoints[i+1][0]*k1 - smooth_waypoints[i+1][1]**2) / (smooth_waypoints[i+1][0]*k2 - smooth_waypoints[i+1][1] + smooth_waypoints[i-1][1] - smooth_waypoints[i-1][0]*k2)
     a = k1 - k2*b
     r = math.sqrt((w[0]-a)**2 + (w[1]-b)**2)
-    w.append(r)
+    w.append(1/r)
 
 for w in smooth_waypoints:
-    w.append(min(float(config["VELOCITY"]["MAX_VEL"]), w[3]*float(config["VELOCITY"]["TURNING_CONST"])))
+    w.append(min(float(config["VELOCITY"]["MAX_VEL"]), float(config["VELOCITY"]["TURNING_CONST"])/w[3]))
+
+smooth_waypoints[-1].append(0)
+for i, w in enumerate(reversed(smooth_waypoints[:-1]), start=1):
+    w.append(min(w[4], math.sqrt(smooth_waypoints[-i][5]**2+2*float(config["VELOCITY"]["MAX_ACCEL"])* \
+                                  math.sqrt((w[0]-smooth_waypoints[-i][0])**2 + (w[1]-smooth_waypoints[-i][1])**2))))
 
 with open("path.csv", "w+") as file:
     for w in smooth_waypoints:
@@ -87,16 +94,20 @@ with open("path.csv", "w+") as file:
             file.write(str(v) + ",")
         file.write("\n")
 
+cv2.circle(img, (int(start_pos[0]+smooth_waypoints[0][0]*float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])),
+                     int(start_pos[1]-smooth_waypoints[0][1]*float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"]))),
+               2, (255*(1-smooth_waypoints[0][5]/float(config["VELOCITY"]["MAX_VEL"])), 0,
+                   255*smooth_waypoints[0][5]/float(config["VELOCITY"]["MAX_VEL"])), -1)
 for i in range(1, len(smooth_waypoints)):
     cv2.circle(img, (int(start_pos[0]+smooth_waypoints[i][0]*float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])),
                      int(start_pos[1]-smooth_waypoints[i][1]*float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"]))),
-               2, (255*(1-smooth_waypoints[i-1][4]/float(config["VELOCITY"]["MAX_VEL"])), 0,
-                   255*smooth_waypoints[i-1][4]/float(config["VELOCITY"]["MAX_VEL"])), -1)
+               2, (255*(1-smooth_waypoints[i-1][5]/float(config["VELOCITY"]["MAX_VEL"])), 0,
+                   255*smooth_waypoints[i-1][5]/float(config["VELOCITY"]["MAX_VEL"])), -1)
     cv2.line(img, (int(start_pos[0]+smooth_waypoints[i][0]*float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])),
                      int(start_pos[1]-smooth_waypoints[i][1]*float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"]))),
              (int(start_pos[0] + smooth_waypoints[i-1][0] * float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])),
               int(start_pos[1] - smooth_waypoints[i-1][1] * float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"]))),
-             (255 * (1 - smooth_waypoints[i - 1][4] / float(config["VELOCITY"]["MAX_VEL"])), 0,
-              255*smooth_waypoints[i - 1][4] / float(config["VELOCITY"]["MAX_VEL"])), 1)
+             (255 * (1 - smooth_waypoints[i - 1][5] / float(config["VELOCITY"]["MAX_VEL"])), 0,
+              255*smooth_waypoints[i - 1][5] / float(config["VELOCITY"]["MAX_VEL"])), 1)
 cv2.imshow("Field", img)
 cv2.waitKey()

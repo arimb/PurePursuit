@@ -100,7 +100,7 @@ for i, w in enumerate(reversed(smooth_waypoints[:-1]), start=1):
                                   math.sqrt((w[0]-smooth_waypoints[-i][0])**2 + (w[1]-smooth_waypoints[-i][1])**2))))
 
 # WRITE RESULTS TO FILE
-with open(config["PATH"]["FILE_LOACTION"], "w+") as file:
+with open(config["PATH"]["FILE_LOCATION"], "w+") as file:
     for w in smooth_waypoints:
         file.write(str(w[0]) + "," + str(w[1]) + "," + str(w[5]) + "\n")
 

@@ -7,10 +7,10 @@ def closest():
     global path, pos
 
     mindist = (0, math.sqrt((path[0][0] - pos[0]) ** 2 + (path[0][1] - pos[1]) ** 2))
-    for i, p in enumerate(path[mindist[0]:]):
-        dist = (i, math.sqrt((path[0][0] - pos[0]) ** 2 + (path[0][1] - pos[1]) ** 2) < mindist[1])
-        if dist[1] < mindist[1]:
-            mindist = dist
+    for i, p in enumerate(path):
+        dist = math.sqrt((p[0]-pos[0])**2 + (p[1]-pos[1])**2)
+        if dist < mindist[1]:
+            mindist = (i, dist)
 
     return mindist[0]
 def lookahead():
@@ -85,8 +85,8 @@ def draw_robot(img):
                                       start_pos[1] + (pos[1]-length/2*math.cos(angle)+width/2*math.sin(angle))*-scaler)])
                      .reshape((-1,1,2)).astype(np.int32)], 0, (0, 255, 255), 2)
     cv2.circle(tmp, (int(start_pos[0]+pos[0]*scaler), int(start_pos[1]-pos[1]*scaler)), int(config["PATH"]["LOOKAHEAD"]), (0, 255, 0), 1)
-    cv2.circle(tmp, (int(start_pos[0] + pos[0] * scaler), int(start_pos[1] - pos[1] * scaler)), 4, (0, 255, 0), -1)
     cv2.circle(tmp, (int(start_pos[0]+look[0]*scaler), int(start_pos[1]-look[1]*scaler)), 4, (0,255,0), -1)
+    cv2.circle(tmp, (int(start_pos[0]+path[close][0]*scaler), int(start_pos[1]-path[close][1]*scaler)), 4, (0,0,255), -1)
 
     try:
         x3 = (pos[0]+look[0])/2
@@ -150,12 +150,13 @@ while closest() != len(path)-1:
 
     look = lookahead()
     curv = curvature(look)
-    vel = path[closest()][2]
+    close = closest()
+    vel = path[close][2]
     last_wheels = wheels
     wheels = turn(curv, vel, width)
 
-    # for i, w in enumerate(wheels):
-    #     wheels[i] = last_wheels[i] + min(float(config["VELOCITY"]["POSITIVE_VEL_CHANGE"])*dt, max(-float(config["VELOCITY"]["NEGATIVE_VEL_CHANGE"])*dt, w-last_wheels[i]))
+    for i, w in enumerate(wheels):
+        wheels[i] = last_wheels[i] + min(float(config["VELOCITY"]["MAX_VEL_CHANGE"])*dt, max(-float(config["VELOCITY"]["MAX_VEL_CHANGE"])*dt, w-last_wheels[i]))
 
     pos = (pos[0] + (wheels[0]+wheels[1])/2*dt * math.sin(angle), pos[1] + (wheels[0]+wheels[1])/2*dt * math.cos(angle))
     angle += math.atan((wheels[0]-wheels[1])/width*dt)

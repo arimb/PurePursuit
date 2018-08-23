@@ -154,8 +154,8 @@ while closest() != len(path)-1:
     last_wheels = wheels
     wheels = turn(curv, vel, width)
 
-    for i, w in enumerate(wheels):
-        wheels[i] = last_wheels[i] + min(float(config["VELOCITY"]["POSITIVE_VEL_CHANGE"])*dt, max(-float(config["VELOCITY"]["NEGATIVE_VEL_CHANGE"])*dt, w-last_wheels[i]))
+    # for i, w in enumerate(wheels):
+    #     wheels[i] = last_wheels[i] + min(float(config["VELOCITY"]["POSITIVE_VEL_CHANGE"])*dt, max(-float(config["VELOCITY"]["NEGATIVE_VEL_CHANGE"])*dt, w-last_wheels[i]))
 
     pos = (pos[0] + (wheels[0]+wheels[1])/2*dt * math.sin(angle), pos[1] + (wheels[0]+wheels[1])/2*dt * math.cos(angle))
     angle += math.atan((wheels[0]-wheels[1])/width*dt)

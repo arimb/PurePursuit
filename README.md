@@ -8,9 +8,13 @@ __Path Generator__
 
 The path generator works by loading and displaying an image of the field (set by the FIELD_LOCATION constant). The user can click on the image to set the desired waypoints. Hold shift when clicking to force the path vertical/horizontal. When all the waypoints have been selected, press endter and the program will smooth the path, generate velocity setpoints for each point, and save the data to the file specified by the FILE_LOCATION constant. 
 
+![alt text](generation.JPG "Path Generator")
+
 __Robot Simulator__
 
 The robot simulator shows how the robot will follow the path specified, only knowing its current location, angle, and the path waypoints and velocities. At each timestep, the robot finds the proper lookahead point, calculates the curvature and velocity needed to get to that point, and then sets the wheel speeds to follow that curvature and velocity. The simulator then recalculates the robot's new position and angle based on standard tank drive kinematics. All of this code could theoretically be used on a real robot, replacing the kinematic simulator with control loops to set the speeds of the wheels to the desired values. 
+
+![alt text](simulation.gif "Robot Simulator")
 
 ## The Config File
 __FIELD_IMAGE__

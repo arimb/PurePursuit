@@ -6,7 +6,7 @@ The program is divided into two Python files, the [Path Generator](PathGenerator
 
 __Path Generator__
 
-The path generator works by loading and displaying an image of the field (set by the FIELD_LOCATION constant). The user can click on the image to set the desired waypoints. When all the waypoints have been selected, press endter and the program will smooth the path, generate velocity setpoints for each point, and save the data to the file specified by the FILE_LOCATION constant. 
+The path generator works by loading and displaying an image of the field (set by the FIELD_LOCATION constant). The user can click on the image to set the desired waypoints. Hold shift when clicking to force the path vertical/horizontal. When all the waypoints have been selected, press endter and the program will smooth the path, generate velocity setpoints for each point, and save the data to the file specified by the FILE_LOCATION constant. 
 
 __Robot Simulator__
 

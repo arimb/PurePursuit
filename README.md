@@ -1,5 +1,5 @@
 # PurePursuit
-An implementation of Team 1712's [Pure Pursuit Algorithm](https://www.chiefdelphi.com/media/papers/3488). The code is all custom, but the important equations and ideas come directly from the whitpaper.
+A python implementation of Team 1712's [Pure Pursuit Algorithm](https://www.chiefdelphi.com/media/papers/3488). The code is all custom, but the important equations and ideas come directly from the whitpaper.
 
 ## How It Works
 The program is divided into two Python files, the [Path Generator](PathGenerator.py) and the [Robot Simulator](RobotSimulator.py), and the [config file](config.ini) to change constants.

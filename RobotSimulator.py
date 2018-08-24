@@ -106,9 +106,9 @@ def draw_robot(img):
              (0,0,255), 2)
 
     cv2.imshow("img", tmp)
-    if itt%6==0:
-        cv2.imwrite("images/" + str(itt) + ".png", tmp)
-        print(itt)
+    # if itt%6==0:
+    #     cv2.imwrite("images/" + str(itt) + ".png", tmp)
+    #     print(itt)
     cv2.waitKey(5)
 
 def click(event, x, y, flags, param):

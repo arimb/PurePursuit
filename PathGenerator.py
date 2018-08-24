@@ -6,18 +6,21 @@ import sys
 # HANDLE MOUSE EVENTS FOR SELECTION
 def click(event, x, y, flags, param):
     global waypoints, img, start_pos, mouse_down
-    if mouse_down:
-        tmp = img.copy()
-        place_point(tmp, x, y, flags&cv2.EVENT_FLAG_SHIFTKEY, False)
-        cv2.imshow("Field", tmp)
-    if event == cv2.EVENT_LBUTTONDOWN:
-        mouse_down = True
-    if event == cv2.EVENT_LBUTTONUP:
-        mouse_down = False
-        if len(waypoints) == 0:
-            start_pos = (x,y)
-        place_point(img, x, y, flags&cv2.EVENT_FLAG_SHIFTKEY, True)
-        cv2.imshow("Field", img)
+    try:
+        if mouse_down:
+            tmp = img.copy()
+            place_point(tmp, x, y, flags&cv2.EVENT_FLAG_SHIFTKEY, False)
+            cv2.imshow("Field", tmp)
+        if event == cv2.EVENT_LBUTTONDOWN:
+            mouse_down = True
+        if event == cv2.EVENT_LBUTTONUP:
+            mouse_down = False
+            if len(waypoints) == 0:
+                start_pos = (x,y)
+            place_point(img, x, y, flags&cv2.EVENT_FLAG_SHIFTKEY, True)
+            cv2.imshow("Field", img)
+    except:
+        pass
 
 def place_point(img, x, y, shift, add):
     if shift and len(waypoints)>0:
@@ -105,6 +108,16 @@ smooth_waypoints[-1].append(0)
 for i, w in enumerate(reversed(smooth_waypoints[:-1]), start=1):
     w.append(min(w[4], math.sqrt(smooth_waypoints[-i][5]**2+2*float(config["VELOCITY"]["MAX_ACCEL"])* \
                                   math.sqrt((w[0]-smooth_waypoints[-i][0])**2 + (w[1]-smooth_waypoints[-i][1])**2))))
+
+smooth_waypoints[0][5] = float(config["VELOCITY"]["STARTING_VEL"])
+for i, w in enumerate(smooth_waypoints[1:], start=1):
+    test = math.sqrt(smooth_waypoints[i-1][5]**2 + 2*float(config["VELOCITY"]["MAX_ACCEL"])* \
+                     math.sqrt((w[0] - smooth_waypoints[i-1][0]) ** 2 + (w[1] - smooth_waypoints[i-1][1]) ** 2))
+    print(test)
+    if test < w[5]:
+        w[5] = test
+    else:
+        break
 
 # WRITE RESULTS TO FILE
 with open(config["PATH"]["FILE_LOCATION"], "w+") as file:

@@ -58,21 +58,14 @@ def turn(curv, vel, trackwidth):
 
 def draw_path(img):
     global path, start_pos
-    cv2.circle(img, (int(start_pos[0] + path[0][0] * float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])/2),
-                     int(start_pos[1] - path[0][1] * float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])/2)),
-               2, (255 * (1 - path[0][2] / float(config["VELOCITY"]["MAX_VEL"])), 0,
-                   255 * path[0][2] / float(config["VELOCITY"]["MAX_VEL"])), -1)
+    cv2.circle(img, (int(start_pos[0]+path[0][0]*scaler), int(start_pos[1]-path[0][1]*scaler)), 2,
+               (255*(1-path[0][2]/float(config["VELOCITY"]["MAX_VEL"])), 0, 255*path[0][2]/float(config["VELOCITY"]["MAX_VEL"])), -1)
     for i in range(1, len(path)):
-        cv2.circle(img, (int(start_pos[0] + path[i][0] * float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])/2),
-                         int(start_pos[1] - path[i][1] * float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])/2)),
-                   2, (255 * (1 - path[i - 1][2] / float(config["VELOCITY"]["MAX_VEL"])), 0,
-                       255 * path[i - 1][2] / float(config["VELOCITY"]["MAX_VEL"])), -1)
-        cv2.line(img, (int(start_pos[0] + path[i][0] * float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])/2),
-                       int(start_pos[1] - path[i][1] * float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])/2)),
-                 (int(start_pos[0] + path[i - 1][0] * float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])/2),
-                  int(start_pos[1] - path[i - 1][1] * float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])/2)),
-                 (255 * (1 - path[i - 1][2] / float(config["VELOCITY"]["MAX_VEL"])), 0,
-                  255 * path[i - 1][2] / float(config["VELOCITY"]["MAX_VEL"])), 1)
+        cv2.circle(img, (int(start_pos[0]+path[i][0]*scaler), int(start_pos[1]-path[i][1]*scaler)), 2,
+                   (255*(1-path[i-1][2]/float(config["VELOCITY"]["MAX_VEL"])), 0, 255*path[i-1][2]/float(config["VELOCITY"]["MAX_VEL"])), -1)
+        cv2.line(img, (int(start_pos[0]+path[i][0]*scaler), int(start_pos[1]-path[i][1]*scaler)),
+                 (int(start_pos[0]+path[i-1][0]*scaler), int(start_pos[1]-path[i-1][1]*scaler)),
+                 (255*(1-path[i-1][2]/float(config["VELOCITY"]["MAX_VEL"])), 0, 255*path[i-1][2]/float(config["VELOCITY"]["MAX_VEL"])), 1)
 def draw_robot(img):
     tmp = img.copy()
     cv2.drawContours(tmp, [np.array([(start_pos[0] + (pos[0]+length/2*math.sin(angle)-width/2*math.cos(angle))*scaler,
@@ -85,8 +78,8 @@ def draw_robot(img):
                                       start_pos[1] + (pos[1]-length/2*math.cos(angle)+width/2*math.sin(angle))*-scaler)])
                      .reshape((-1,1,2)).astype(np.int32)], 0, (0, 255, 255), 2)
     cv2.circle(tmp, (int(start_pos[0]+pos[0]*scaler), int(start_pos[1]-pos[1]*scaler)), int(config["PATH"]["LOOKAHEAD"]), (0, 255, 0), 1)
-    cv2.circle(tmp, (int(start_pos[0]+look[0]*scaler), int(start_pos[1]-look[1]*scaler)), 4, (0,255,0), -1)
     cv2.circle(tmp, (int(start_pos[0]+path[close][0]*scaler), int(start_pos[1]-path[close][1]*scaler)), 4, (0,0,255), -1)
+    cv2.circle(tmp, (int(start_pos[0]+look[0]*scaler), int(start_pos[1]-look[1]*scaler)), 4, (0,255,0), -1)
 
     try:
         x3 = (pos[0]+look[0])/2
@@ -115,10 +108,13 @@ def draw_robot(img):
     cv2.waitKey(5)
 
 def click(event, x, y, flags, param):
-    global pos
+    global pos, angle
     if event == cv2.EVENT_LBUTTONDOWN:
         pos = ((x-start_pos[0])/scaler,(start_pos[0]-y)/scaler)
-        print(pos[0])
+        angle = 0
+        t = 0
+        t_i = 0
+        wheels = (0, 0)
 
 
 config = configparser.ConfigParser()
@@ -127,7 +123,7 @@ config.read("config.ini")
 with open(config["PATH"]["FILE_LOCATION"]) as file:
     path = [([float(x) for x in line.split(",")]) for line in file.readlines()]
 
-scaler = float(config["FIELD_IMAGE"]["PIXELS_PER_INCH"])/2
+scaler = float(config["FIELD_IMAGE"]["PIXELS_PER_UNIT"])/2
 width = float(config["ROBOT"]["TRACKWIDTH"])
 length = float(config["ROBOT"]["LENGTH"])
 
@@ -156,10 +152,12 @@ while closest() != len(path)-1:
     wheels = turn(curv, vel, width)
 
     for i, w in enumerate(wheels):
-        wheels[i] = last_wheels[i] + min(float(config["VELOCITY"]["MAX_VEL_CHANGE"])*dt, max(-float(config["VELOCITY"]["MAX_VEL_CHANGE"])*dt, w-last_wheels[i]))
+        wheels[i] = last_wheels[i] + min(float(config["ROBOT"]["MAX_VEL_CHANGE"])*dt, max(-float(config["ROBOT"]["MAX_VEL_CHANGE"])*dt, w-last_wheels[i]))
 
     pos = (pos[0] + (wheels[0]+wheels[1])/2*dt * math.sin(angle), pos[1] + (wheels[0]+wheels[1])/2*dt * math.cos(angle))
     angle += math.atan((wheels[0]-wheels[1])/width*dt)
     print(str(wheels) + ", " + str(angle))
 
     draw_robot(img)
+
+cv2.waitKey()

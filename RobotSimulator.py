@@ -33,13 +33,13 @@ def lookahead():
             if 0<=t1<=1:
                 # if (t1 >= t and i == t_i) or i > t_i:
                     t = t1
-                    t_i = i
+                    t_i = i_
                     # print("hit")
                     return p[0]+t*d[0], p[1]+t*d[1]
             if 0<=t2<=1:
                 # if (t2 >= t and i == t_i) or i > t_i:
                     t = t2
-                    t_i = i
+                    t_i = i_
                     # print("hit")
                     return p[0]+t*d[0], p[1]+t*d[1]
     t = 0
@@ -78,7 +78,8 @@ def draw_robot(img):
                                       start_pos[1] + (pos[1]-length/2*math.cos(angle)+width/2*math.sin(angle))*-scaler)])
                      .reshape((-1,1,2)).astype(np.int32)], 0, (0, 255, 255), 2)
     cv2.circle(tmp, (int(start_pos[0]+pos[0]*scaler), int(start_pos[1]-pos[1]*scaler)), int(config["PATH"]["LOOKAHEAD"]), (0, 255, 0), 1)
-    cv2.circle(tmp, (int(start_pos[0]+path[close][0]*scaler), int(start_pos[1]-path[close][1]*scaler)), 4, (0,0,255), -1)
+    cv2.circle(tmp, (int(start_pos[0]+path[close][0]*scaler), int(start_pos[1]-path[close][1]*scaler)), 4,
+               (255*(1-path[close][2]/float(config["VELOCITY"]["MAX_VEL"])), 0, 255*path[close][2]/float(config["VELOCITY"]["MAX_VEL"])), -1)
     cv2.circle(tmp, (int(start_pos[0]+look[0]*scaler), int(start_pos[1]-look[1]*scaler)), 4, (0,255,0), -1)
 
     try:
@@ -105,16 +106,19 @@ def draw_robot(img):
              (0,0,255), 2)
 
     cv2.imshow("img", tmp)
+    # if itt%5==0:
+    #     cv2.imwrite("images/" + str(itt) + ".png", tmp)
+    #     print(itt)
     cv2.waitKey(5)
 
 def click(event, x, y, flags, param):
-    global pos, angle
+    global pos, angle, t, t_i, wheels
     if event == cv2.EVENT_LBUTTONDOWN:
         pos = ((x-start_pos[0])/scaler,(start_pos[0]-y)/scaler)
         angle = 0
         t = 0
         t_i = 0
-        wheels = (0, 0)
+        wheels = [0, 0]
 
 
 config = configparser.ConfigParser()
@@ -131,22 +135,24 @@ pos = (0,0)
 angle = math.atan2(path[1][0], path[1][1])
 t = 0
 t_i = 0
-wheels = (0,0)
+wheels = [0,0]
 
 dt=0.005
 
-img = np.zeros((741, 789, 3), np.uint8)
-start_pos = (741 / 2, 789 / 2)
+field = cv2.imread(config["FIELD_IMAGE"]["FILE_LOCATION"])
+img = np.zeros((field.shape[0], field.shape[1], 3), np.uint8)
+start_pos = (field.shape[0]/2, field.shape[1]/2)
 draw_path(img)
 cv2.imshow("img", img)
 cv2.setMouseCallback('img', click)
 cv2.waitKey(5)
 
+itt = 0
 while closest() != len(path)-1:
 
     look = lookahead()
-    curv = curvature(look)
     close = closest()
+    curv = curvature(look) if t_i>close else 0.00001
     vel = path[close][2]
     last_wheels = wheels
     wheels = turn(curv, vel, width)
@@ -156,8 +162,9 @@ while closest() != len(path)-1:
 
     pos = (pos[0] + (wheels[0]+wheels[1])/2*dt * math.sin(angle), pos[1] + (wheels[0]+wheels[1])/2*dt * math.cos(angle))
     angle += math.atan((wheels[0]-wheels[1])/width*dt)
-    print(str(wheels) + ", " + str(angle))
+    # print(str(wheels) + ", " + str(angle))
 
     draw_robot(img)
+    itt += 1
 
 cv2.waitKey()

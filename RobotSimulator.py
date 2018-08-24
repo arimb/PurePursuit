@@ -128,7 +128,7 @@ width = float(config["ROBOT"]["TRACKWIDTH"])
 length = float(config["ROBOT"]["LENGTH"])
 
 pos = (0,0)
-angle = 0
+angle = math.atan2(path[1][0], path[1][1])
 t = 0
 t_i = 0
 wheels = (0,0)
